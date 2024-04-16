@@ -1,0 +1,506 @@
+      ******************************************************************
+      *                     CITY CONNECT BANK                          *
+      *              HOUSING LOAN PROCESSING SYSTEM                    *
+      ******************************************************************
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID.      COBOL1.
+       AUTHOR.       SAI KIRAN.
+      ************** FILE CONTROL OF INPUT/OUTPUT FILES ****************
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT TI001-PS1 ASSIGN TO INPS
+                  ORGANIZATION IS SEQUENTIAL
+                  ACCESS       IS SEQUENTIAL
+                  FILE STATUS  IS WS-TI001-FST.
+           SELECT TO001-PS2 ASSIGN TO OUTERR
+                  ORGANIZATION IS SEQUENTIAL
+                  ACCESS       IS SEQUENTIAL
+                  FILE STATUS  IS WS-TO001-FST.
+           SELECT MO001-KSDS ASSIGN TO OUTKSDS
+                  ORGANIZATION IS INDEXED
+                  ACCESS       IS SEQUENTIAL
+                  FILE STATUS  IS WS-MO001-FST
+                  RECORD KEY   IS MO001-KEY.
+      ******************* FILE LAYOUTS USING COPY BOOK*****************
+       DATA DIVISION.
+       FILE SECTION.
+       FD TI001-PS1.
+       COPY INPLOUT.
+       FD TO001-PS2.
+       COPY ERRLOUT.
+       FD MO001-KSDS.
+       COPY KSDSLOUT.
+       WORKING-STORAGE SECTION.
+      ***** CONNECTING COMMUNICATION AREA/HOST VARIABLES TO COBOL*****
+           EXEC SQL
+           INCLUDE SQLCA
+           END-EXEC.
+           EXEC SQL
+           INCLUDE TABLE1
+           END-EXEC.
+           EXEC SQL
+           INCLUDE TABLE2
+           END-EXEC.
+      ************** DECLARING VARIABLES USED IN THE PROGRAM **********
+       01 WS-VARS.
+           05 WS-TI001-FST         PIC 9(02).
+              88 WS-TI001-FST-SUCCESS              VALUE ZEROES.
+              88 WS-TI001-FST-EOF                  VALUE 10.
+           05 WS-TO001-FST         PIC 9(02).
+              88 WS-TO001-FST-SUCCESS              VALUE ZEROES.
+              88 WS-TO001-FST-EOF                  VALUE 10.
+           05 WS-MO001-FST         PIC 9(02).
+              88 WS-MO001-FST-SUCCESS              VALUE ZEROES.
+              88 WS-MO001-FST-EOF                  VALUE 10.
+           05 WS-DATE              PIC 9(08)       VALUE ZERO.
+           05 WS-INT-DATE          PIC 9(10)       VALUE ZERO.
+           05 WS-DATE-FINAL        PIC 9(08)       VALUE ZERO.
+           05 WS-IR                PIC 9(02)V9(01) VALUE ZERO.
+           05 WS-LOT               PIC 9(02)       VALUE ZERO.
+           05 WS-COUNTER           PIC 9(03)       VALUE ZERO.
+           05 WS-IC                PIC 9(03)       VALUE ZERO.
+           05 WS-STRING-PTR        PIC 9(03)       VALUE ZERO.
+           05 WS-REASON-OUT        PIC X(100).
+       01 WS01-SQL-ERROR.
+           05 WS05-ERR-MSG.
+              10 WS10-ERR-LEN    PIC S9(04) COMP VALUE 800.
+              10 WS10-ERR-TEXT   PIC X(80)  OCCURS 10 TIMES.
+           05 WS05-LRECL         PIC S9(09) COMP VALUE 80.
+       PROCEDURE DIVISION.
+       0000-MAIN-PARA.
+           PERFORM 1000-INIT-PARA
+           THRU    1000-INIT-PARA-EXIT
+           PERFORM 3000-PROC-PARA
+           THRU    3000-PROC-PARA-EXIT
+           PERFORM 9000-TERM-PARA
+           .
+       0000-MAIN-PARA-EXIT.
+           EXIT
+           .
+      ******************* DELETING RECORDS FROM TABLE *****************
+       1000-INIT-PARA.
+           PERFORM 3200-DELT-PARA
+              THRU 3200-DELT-PARA-EXIT
+           .
+       1000-INIT-PARA-EXIT.
+           EXIT
+           .
+       3000-PROC-PARA.
+           PERFORM 3100-OPEN-PARA
+           THRU    3100-OPEN-PARA-EXIT
+           PERFORM 3200-READ-PARA
+           THRU    3200-READ-PARA-EXIT
+           UNTIL   WS-TI001-FST-EOF
+           PERFORM 3300-CLOSE-PARA
+           THRU    3300-CLOSE-PARA-EXIT
+           .
+       3000-PROC-PARA-EXIT.
+           EXIT
+           .
+      *************** OPENING THE INPUT AND OUTPUT FILES **************
+       3100-OPEN-PARA.
+           OPEN INPUT TI001-PS1
+           EVALUATE TRUE
+                WHEN WS-TI001-FST-SUCCESS
+                     DISPLAY "INPUT FILE OPENED"
+                WHEN OTHER
+                     DISPLAY "INPUT FILE OPEN FAILED" WS-TI001-FST
+                     PERFORM 9000-TERM-PARA
+           END-EVALUATE
+           OPEN OUTPUT TO001-PS2
+           EVALUATE TRUE
+                WHEN WS-TO001-FST-SUCCESS
+                     DISPLAY "OUTPUT OPENED"
+                WHEN OTHER
+                     DISPLAY "OUTPUT OPEN FAILED" WS-TO001-FST
+                     PERFORM 9000-TERM-PARA
+           END-EVALUATE
+           .
+           OPEN OUTPUT MO001-KSDS
+           EVALUATE TRUE
+                WHEN WS-MO001-FST-SUCCESS
+                     DISPLAY "KSDS OPENED"
+                WHEN OTHER
+                     DISPLAY "KSDS OPEN FAILED" WS-MO001-FST
+                     PERFORM 9000-TERM-PARA
+           END-EVALUATE
+           .
+       3100-OPEN-PARA-EXIT.
+           EXIT
+           .
+      ********************** READING THE INPUT FILE *******************
+       3200-READ-PARA.
+           MOVE SPACES TO TI001-PS1-REC TO001-PS2-REC MO001-KSDS-REC
+           READ TI001-PS1
+           EVALUATE TRUE
+           WHEN WS-TI001-FST-SUCCESS
+                  ADD 1 TO WS-COUNTER
+                  PERFORM 3210-VALID-PARA
+                  THRU    3210-VALID-PARA-EXIT
+           WHEN WS-TI001-FST-EOF
+                IF WS-COUNTER = 00
+                  DISPLAY "FILE IS EMPTY"
+                ELSE
+                  DISPLAY "END OF FILE REACHED"
+                  DISPLAY "RECORD PROCCESSED:" WS-COUNTER
+                END-IF
+           WHEN OTHER
+                  DISPLAY "INPUT READ FAILED" WS-TI001-FST
+           END-EVALUATE
+           .
+       3200-READ-PARA-EXIT.
+           EXIT
+           .
+      ********************* VALIDATING INPUT RECORD *******************
+       3210-VALID-PARA.
+           MOVE ZERO TO WS-IC
+           MOVE SPACES TO WS-REASON-OUT
+           MOVE 1 TO WS-STRING-PTR
+           EVALUATE TRUE
+           WHEN TI001-APPLICANT-ID IS NOT NUMERIC
+             MOVE 1 TO WS-IC
+             STRING "INCORRECT APPLICANT ID" DELIMITED BY SIZE
+               INTO WS-REASON-OUT WITH POINTER WS-STRING-PTR
+             END-STRING
+               DISPLAY WS-STRING-PTR
+           END-EVALUATE
+           EVALUATE TRUE
+           WHEN TI001-STATE NOT GREATER THAN SPACES
+             MOVE 1 TO WS-IC
+             IF WS-STRING-PTR = 1
+             STRING "STATE IS EMPTY" DELIMITED BY SIZE
+               INTO WS-REASON-OUT WITH POINTER WS-STRING-PTR
+             END-STRING
+             ELSE
+             STRING ",STATE IS EMPTY" DELIMITED BY SIZE
+               INTO WS-REASON-OUT WITH POINTER WS-STRING-PTR
+             END-STRING
+             END-IF
+           END-EVALUATE
+           EVALUATE TRUE
+           WHEN TI001-PIN IS NOT NUMERIC OR TI001-PIN(1:1) = 0
+             MOVE 1 TO WS-IC
+             IF WS-STRING-PTR = 1
+             STRING "INVALID PINCODE" DELIMITED BY SIZE
+               INTO WS-REASON-OUT WITH POINTER WS-STRING-PTR
+             END-STRING
+             ELSE
+             STRING ",INVALID PINCODE" DELIMITED BY SIZE
+               INTO WS-REASON-OUT WITH POINTER WS-STRING-PTR
+             END-STRING
+             END-IF
+           END-EVALUATE
+           EVALUATE TRUE
+           WHEN TI001-PHONENO IS NOT NUMERIC
+             MOVE 1 TO WS-IC
+             IF WS-STRING-PTR = 1
+             STRING "INVALID PHONE NO." DELIMITED BY SIZE
+               INTO WS-REASON-OUT WITH POINTER WS-STRING-PTR
+             END-STRING
+             ELSE
+             STRING ",INVALID PHONE NO." DELIMITED BY SIZE
+               INTO WS-REASON-OUT WITH POINTER WS-STRING-PTR
+             END-STRING
+             END-IF
+           END-EVALUATE
+           EVALUATE TRUE
+           WHEN TI001-LOANID IS NOT NUMERIC OR
+                             TI001-LOANID NOT GREATER THAN SPACES
+             MOVE 1 TO WS-IC
+             IF WS-STRING-PTR = 1
+             STRING "INVALID LOANID" DELIMITED BY SIZE
+               INTO WS-REASON-OUT WITH POINTER WS-STRING-PTR
+             END-STRING
+             ELSE
+             STRING ",INVALID LOANID" DELIMITED BY SIZE
+               INTO WS-REASON-OUT WITH POINTER WS-STRING-PTR
+             END-STRING
+             END-IF
+           END-EVALUATE
+           EVALUATE FALSE
+           WHEN TI001-LOANTYPE = 'HOUSING' OR
+                TI001-LOANTYPE = 'EDUCATION' OR
+                TI001-LOANTYPE = 'PERSONAL' OR
+                TI001-LOANTYPE = 'AGRICUL' OR
+                TI001-LOANTYPE = 'CAR'     OR
+                TI001-LOANTYPE = 'BUSINESS'
+             MOVE 1 TO WS-IC
+             IF WS-STRING-PTR = 1
+             STRING "INVALID LOANTYPE" DELIMITED BY SIZE
+               INTO WS-REASON-OUT WITH POINTER WS-STRING-PTR
+             END-STRING
+             ELSE
+             STRING ",INVALID LOANTYPE" DELIMITED BY SIZE
+               INTO WS-REASON-OUT WITH POINTER WS-STRING-PTR
+             END-STRING
+             END-IF
+           END-EVALUATE
+           EVALUATE TRUE
+           WHEN TI001-APPLOAMT IS NOT NUMERIC
+             MOVE 1 TO WS-IC
+             IF WS-STRING-PTR = 1
+             STRING "INVALID APPLICANT LOAN AMT" DELIMITED BY SIZE
+               INTO WS-REASON-OUT WITH POINTER WS-STRING-PTR
+             END-STRING
+             ELSE
+             STRING ",INVALID APPLICANT LOAN AMT" DELIMITED BY SIZE
+               INTO WS-REASON-OUT WITH POINTER WS-STRING-PTR
+             END-STRING
+             END-IF
+           END-EVALUATE
+           EVALUATE FALSE
+           WHEN TI001-APPDATE(1:4) IS NUMERIC AND
+                TI001-APPDATE(6:2) IS NUMERIC AND
+                TI001-APPDATE(9:2) IS NUMERIC
+             MOVE 1 TO WS-IC
+             IF WS-STRING-PTR = 1
+             STRING "INCORRECT DATE" DELIMITED BY SIZE
+               INTO WS-REASON-OUT WITH POINTER WS-STRING-PTR
+             END-STRING
+             ELSE
+             STRING ",INCORRECT DATE" DELIMITED BY SIZE
+               INTO WS-REASON-OUT WITH POINTER WS-STRING-PTR
+             END-STRING
+             END-IF
+           END-EVALUATE
+           EVALUATE FALSE
+           WHEN TI001-INTRATE(1:2) IS  NUMERIC AND
+                TI001-INTRATE(3:1) = '.' AND
+                TI001-INTRATE(4:1) IS  NUMERIC
+             MOVE 1 TO WS-IC
+             IF WS-STRING-PTR = 1
+             STRING "INCORRECT FIXED INTEREST RATE" DELIMITED BY SIZE
+               INTO WS-REASON-OUT WITH POINTER WS-STRING-PTR
+             END-STRING
+             ELSE
+             STRING ",INCORRECT FIXED INTEREST RATE" DELIMITED BY SIZE
+               INTO WS-REASON-OUT WITH POINTER WS-STRING-PTR
+             END-STRING
+             END-IF
+           END-EVALUATE
+           EVALUATE FALSE
+           WHEN TI001-LOINDCATOR = 'OPEN ' OR
+                TI001-LOINDCATOR = 'CLOSE'
+             MOVE 1 TO WS-IC
+             IF WS-STRING-PTR = 1
+             STRING "INVALID LOAN INDICATOR" DELIMITED BY SIZE
+               INTO WS-REASON-OUT WITH POINTER WS-STRING-PTR
+             END-STRING
+             ELSE
+             STRING ",INVALID LOAN INDICATOR" DELIMITED BY SIZE
+               INTO WS-REASON-OUT WITH POINTER WS-STRING-PTR
+             END-STRING
+             END-IF
+           END-EVALUATE
+           EVALUATE TRUE
+           WHEN WS-IC = 0
+               DISPLAY 'VALID RECORD'
+               EVALUATE TRUE
+               WHEN TI001-LOANID = 01
+                  PERFORM 3240-INSERT1-PARA
+                     THRU 3240-INSERT1-PARA-EXIT
+                  PERFORM 3250-INSERT2-PARA
+                     THRU 3250-INSERT2-PARA-EXIT
+                  EVALUATE TRUE
+                  WHEN TI001-LOINDCATOR = 'OPEN '
+                     PERFORM 3260-KSDS-PARA
+                        THRU 3260-KSDS-PARA-EXIT
+                  END-EVALUATE
+               END-EVALUATE
+           WHEN OTHER
+      ************ WRITING INTO ERROR FILE WITH REASON *****************
+               DISPLAY 'INVALID RECORD'
+               PERFORM 3220-ERMOVE-PARA
+                  THRU 3220-ERMOVE-PARA-EXIT
+           END-EVALUATE
+           .
+       3210-VALID-PARA-EXIT.
+           EXIT
+           .
+      ********** DELETING ALL ROWS FROM APPLICANT AND LOAN DB *********
+       3200-DELT-PARA.
+           EXEC SQL
+           DELETE FROM LOAN_DB
+           END-EXEC.
+           EXEC SQL
+           DELETE FROM APPLICANT_DB
+           END-EXEC.
+           EVALUATE TRUE
+           WHEN SQLCODE = 000
+              DISPLAY 'DELETING ALL ROWS SUCCESSFIL'
+           WHEN OTHER
+              DISPLAY 'ERROR' SQLCODE
+              CALL 'DSNTIAR' USING SQLCA,
+                                   WS05-ERR-MSG,
+                                   WS05-LRECL
+              DISPLAY WS05-ERR-MSG
+           END-EVALUATE.
+       3200-DELT-PARA-EXIT.
+           EXIT.
+      ************* MOVING RECORDS TO ERROR FILE LAYOUT ***************
+       3220-ERMOVE-PARA.
+           MOVE TI001-APPLICANT-ID    TO TO001-APPLICANT-ID
+           MOVE TI001-APPLICANT-NAME  TO TO001-APPLICANT-NAME
+           MOVE TI001-DOORNO          TO TO001-DOORNO
+           MOVE TI001-STREET          TO TO001-STREET
+           MOVE TI001-CITY            TO TO001-CITY
+           MOVE TI001-STATE           TO TO001-STATE
+           MOVE TI001-PIN             TO TO001-PIN
+           MOVE TI001-PHONENO         TO TO001-PHONENO
+           MOVE TI001-LOANID          TO TO001-LOANID
+           MOVE TI001-APPLOAMT        TO TO001-APPLOAMT
+           MOVE TI001-APPDATE         TO TO001-APPDATE
+           MOVE TI001-LOTENURE        TO TO001-LOTENURE
+           MOVE TI001-INTRATE         TO TO001-INTRATE
+           MOVE TI001-LOINDCATOR      TO TO001-LOINDCATOR
+           MOVE TI001-REPAYDATE       TO TO001-REPAYDATE
+           MOVE WS-REASON-OUT         TO TO001-REASON
+                 PERFORM 3230-ERWRITE-PARA
+                 THRU 3230-ERWRITE-PARA-EXIT
+           .
+       3220-ERMOVE-PARA-EXIT.
+           EXIT
+           .
+      ********************** WRITING INTO ERROR FILE ******************
+       3230-ERWRITE-PARA.
+           WRITE TO001-PS2-REC
+           EVALUATE TRUE
+              WHEN WS-TO001-FST-SUCCESS
+                 DISPLAY "WRITE INTO ERROR FILE IS SUCCESSFUL"
+              WHEN OTHER
+                 DISPLAY "WRITE FAILED" WS-TO001-FST
+           END-EVALUATE
+           .
+       3230-ERWRITE-PARA-EXIT.
+           EXIT
+           .
+       3240-INSERT1-PARA.
+      **************** INSERTING DATA INTO APPLICANT DB ***************
+           INITIALIZE DCLAPPLICANT-DB
+           MOVE TI001-APPLICANT-ID TO HV-APP-ID
+           MOVE TI001-APPLICANT-NAME TO HV-NAME-TEXT
+           MOVE LENGTH OF HV-NAME-TEXT TO HV-NAME-LEN
+           MOVE TI001-DOORNO TO HV-DOOR-NO
+           MOVE TI001-STREET TO HV-STREET
+           MOVE TI001-CITY TO HV-CITY
+           MOVE TI001-STATE TO HV-STATE
+           MOVE TI001-PIN TO HV-PIN
+           MOVE TI001-PHONENO TO HV-PHONE
+           EXEC SQL
+           INSERT INTO APPLICANT_DB
+           VALUES(
+           :HV-APP-ID
+           ,:HV-NAME
+           ,:HV-DOOR-NO
+           ,:HV-STREET
+           ,:HV-CITY
+           ,:HV-STATE
+           ,:HV-PIN
+           ,:HV-PHONE
+           )
+           END-EXEC.
+           EVALUATE TRUE
+           WHEN SQLCODE = 000
+              DISPLAY 'INSERTED SUCCESSFUL IN APPLICANT DB'
+           WHEN OTHER
+              DISPLAY 'ERROR' SQLCODE
+              CALL 'DSNTIAR' USING SQLCA,
+                                   WS05-ERR-MSG,
+                                   WS05-LRECL
+              DISPLAY WS05-ERR-MSG
+           END-EVALUATE.
+       3240-INSERT1-PARA-EXIT.
+           EXIT.
+       3250-INSERT2-PARA.
+      ****************** INSERTING DATA INTO LOAN DB ******************
+           INITIALIZE DCLLOAN-DB
+           MOVE TI001-APPLICANT-ID TO HV-AP-ID
+           MOVE TI001-LOANID TO HV-LN-ID
+           MOVE TI001-LOANTYPE TO HV-LN-TYPE
+           MOVE TI001-APPLOAMT TO HV-APROVRD-LN-AMT
+           MOVE TI001-APPDATE TO HV-LN-DATE
+           MOVE TI001-LOTENURE TO HV-LN-TENURE
+           MOVE TI001-INTRATE TO HV-FIR
+           MOVE TI001-LOINDCATOR TO HV-LN-IND
+           MOVE TI001-REPAYDATE TO HV-REPAY-DAY
+           PERFORM 3251-CALC-PARA
+              THRU 3251-CALC-PARA-EXIT
+           MOVE HV-TOT-REPAY-AMT TO HV-BALANEC-AMT
+           EXEC SQL
+           INSERT INTO LOAN_DB
+           VALUES(
+           :HV-AP-ID
+           ,:HV-LN-ID
+           ,:HV-LN-TYPE
+           ,:HV-APROVRD-LN-AMT
+           ,:HV-LN-DATE
+           ,:HV-LN-TENURE
+           ,:HV-FIR
+           ,:HV-LN-IND
+           ,:HV-REPAY-DAY
+           ,:HV-TOT-REPAY-AMT
+           ,:HV-MON-REPAY-AMT
+           ,:HV-NEXT-REPAY-DATE
+           ,:HV-BALANEC-AMT
+           )
+           END-EXEC.
+           EVALUATE TRUE
+           WHEN SQLCODE = 000
+              DISPLAY 'INSERTED SUCCESSFUL IN LOAN DB'
+           WHEN OTHER
+              DISPLAY 'ERROR' SQLCODE
+           END-EVALUATE.
+       3250-INSERT2-PARA-EXIT.
+           EXIT.
+       3251-CALC-PARA.
+      ***************** CALCULATIONS OF DATE AND AMOUNT ***************
+           MOVE TI001-LOTENURE TO WS-LOT
+           MOVE TI001-INTRATE TO WS-IR
+           COMPUTE HV-TOT-REPAY-AMT =  TI001-APPLOAMT +
+                                      (TI001-APPLOAMT * WS-LOT
+                                      * (WS-IR / 100))
+           COMPUTE HV-MON-REPAY-AMT =  HV-TOT-REPAY-AMT /
+                                        (WS-LOT * 12)
+           MOVE TI001-REPAYDATE TO TI001-APPDATE(9:2)
+           MOVE TI001-APPDATE(1:4) TO WS-DATE(1:4)
+           MOVE TI001-APPDATE(6:2) TO WS-DATE(5:2)
+           MOVE TI001-APPDATE(9:2) TO WS-DATE(7:2)
+           COMPUTE WS-INT-DATE = FUNCTION INTEGER-OF-DATE(WS-DATE) + 30
+           COMPUTE WS-DATE-FINAL = FUNCTION DATE-OF-INTEGER(WS-INT-DATE)
+           MOVE WS-DATE-FINAL(1:4) TO TI001-APPDATE(1:4)
+           MOVE WS-DATE-FINAL(5:2) TO TI001-APPDATE(6:2)
+           MOVE WS-DATE-FINAL(7:2) TO TI001-APPDATE(9:2)
+           MOVE TI001-APPDATE TO HV-NEXT-REPAY-DATE
+           .
+       3251-CALC-PARA-EXIT.
+           EXIT
+           .
+       3260-KSDS-PARA.
+      *************** WRITING DATA INTO KSDS OUTPUT FILE **************
+           MOVE TI001-APPLICANT-ID TO MO001-APPL-ID
+           MOVE TI001-LOANID TO MO001-LOAN-ID
+           MOVE TI001-LOANTYPE TO MO001-LOAN-TYPE
+           WRITE MO001-KSDS-REC
+           EVALUATE TRUE
+              WHEN WS-MO001-FST-SUCCESS
+                 DISPLAY "WRITE INTO KSDS IS SUCCESSFUL"
+              WHEN OTHER
+                 DISPLAY "WRITE FAILED" WS-MO001-FST
+           END-EVALUATE
+           .
+       3260-KSDS-PARA-EXIT.
+           EXIT
+           .
+      *************** CLOSING INPUT AND OUTPUT FILES ******************
+       3300-CLOSE-PARA.
+           CLOSE TI001-PS1 TO001-PS2 MO001-KSDS
+           .
+       3300-CLOSE-PARA-EXIT.
+           EXIT
+           .
+       9000-TERM-PARA.
+      ********************* TERMINATION OF PROGRAM ********************
+           STOP RUN
+           .
+

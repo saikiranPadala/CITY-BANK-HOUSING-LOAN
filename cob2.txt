@@ -1,0 +1,425 @@
+      ******************************************************************
+      *                     CITY CONNECT BANK                          *
+      *              HOUSING LOAN PROCESSING SYSTEM                    *
+      *                          REPORT                                *
+      ******************************************************************
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. MFRPCOB2.
+       AUTHOR.     SAI KIRAN.
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+      ************** FILE CONTROL OF INPUT/OUTPUT FILES ****************
+       FILE-CONTROL.
+           SELECT TO001-PS ASSIGN       TO REPORTPS
+                           ORGANIZATION IS SEQUENTIAL
+                           ACCESS       IS SEQUENTIAL
+                           FILE STATUS  IS WS05-TO001-FST
+           .
+       DATA DIVISION.
+       FILE SECTION.
+      ************************* FILE LAYOUT ****************************
+       FD TO001-PS.
+       01 TO001-PS-REC     PIC X(80).
+      ************** DECLARING VARIABLES USED IN THE PROGRAM **********
+       WORKING-STORAGE SECTION.
+       01 WS01-VARS.
+           05 WS05-LINES         PIC 9(03) VALUE 0.
+           05 WS05-CHECK-CITY    PIC X(20) VALUE "CHENNAI".
+       01 WS01-LOAN-AMT.
+           05 WS05-SUM-AMT-TEXT  PIC X(29) VALUE "TOTAL APPROVED LOAN AM
+      -    "OUNT : ".
+           05 WS05-SUM-LOAN-AMT  PIC 9(10) VALUE 0.
+           05 FILLER             PIC X(41) VALUE ALL SPACES.
+       01 WS01-CURRENT-DATE.
+           05 WS05-DATE.
+              10 WS10-YEAR       PIC 9(04).
+              10 WS10-MONTH      PIC 9(02).
+              10 WS10-DAY        PIC 9(02).
+           05 WS05-TIME.
+              10 WS10-HOUR       PIC 9(02).
+              10 WS10-MINUTE     PIC 9(02).
+              10 WS10-SECOND     PIC 9(02).
+       01 WS01-SQL-ERROR.
+           05 WS05-ERR-MSG.
+              10 WS10-ERR-LEN    PIC S9(04) COMP VALUE 800.
+              10 WS10-ERR-TEXT   PIC X(80)  OCCURS 10 TIMES.
+           05 WS05-LRECL         PIC S9(09) COMP VALUE 80.
+       01 WS01-FST.
+           05 WS05-TO001-FST     PIC 9(02).
+              88 C05-TO001-SUC             VALUE 00.
+       01 WS01-REPORT-HEAD.
+           05 WS05-HEAD-APPL-ID  PIC X(12) VALUE "APPLICANT ID".
+           05 FILLER             PIC X(01) VALUE SPACES.
+           05 WS05-HEAD-NAME     PIC X(32) VALUE "NAME".
+           05 FILLER             PIC X(01) VALUE SPACES.
+           05 WS05-HEAD-STATE    PIC X(20) VALUE "STATE".
+           05 FILLER             PIC X(01) VALUE SPACES.
+           05 WS05-HEAD-PHONE-NO PIC X(10) VALUE "CELL NO".
+           05 FILLER             PIC X(03) VALUE SPACES.
+       01 WS01-REPORT-REC.
+           05 WS05-APPL-ID       PIC X(12).
+           05 FILLER             PIC X(01) VALUE SPACES.
+           05 WS05-NAME          PIC X(32).
+           05 FILLER             PIC X(01) VALUE SPACES.
+           05 WS05-STATE         PIC X(20).
+           05 FILLER             PIC X(01) VALUE SPACES.
+           05 WS05-PHONE-NO      PIC X(10).
+           05 FILLER             PIC X(03) VALUE SPACES.
+       01 WS01-END-REPORT.
+           05 WS05-END-OF-PAGE.
+              10 FILLER          PIC X(33) VALUE ALL "*".
+              10 WS10-EOP        PIC X(13) VALUE " END OF PAGE ".
+              10 FILLER          PIC X(34) VALUE ALL "*".
+           05 WS05-END-OF-REPORT.
+              10 FILLER          PIC X(32) VALUE ALL "*".
+              10 WS10-EOR        PIC X(16) VALUE " END OF REPORT ".
+              10 FILLER          PIC X(32) VALUE ALL "*".
+           05 WS05-HYPHEN        PIC X(80) VALUE ALL "-".
+       01 WS01-TOP-OF-PAGE.
+           05 WS05-TITLE.
+              10 FILLER          PIC X(28) VALUE ALL SPACES.
+              10 WS10-REP-NAME   PIC X(24)      VALUE "APPLICANTS DETAIL
+      -       " REPORT".
+              10 FILLER          PIC X(28) VALUE ALL SPACES.
+           05 WS05-PAGE1-L1.
+              10 WS10-TEXT-DATE  PIC X(07) VALUE "DATE : ".
+              10 WS10-DATE.
+                 15 WS15-PAGE-YY PIC 9(04).
+                 15 FILLER       PIC X(01) VALUE '/'.
+                 15 WS15-PAGE-MM PIC 9(02).
+                 15 FILLER       PIC X(01) VALUE '/'.
+                 15 WS15-PAGE-DD PIC 9(02).
+              10 FILLER          PIC X(43) VALUE SPACES.
+              10 WS10-TEXT-PAGE  PIC X(07) VALUE "PAGE : ".
+              10 WS10-PAGE-NO    PIC 9(02) VALUE 1.
+              10 FILLER          PIC X(11) VALUE ALL SPACES.
+           05 WS05-PAGE1-L2.
+              10 WS10-TEXT-TIME  PIC X(07) VALUE "TIME : ".
+              10 WS10-TIME.
+                 15 WS15-PAGE-HH PIC 9(02).
+                 15 FILLER       PIC X(01) VALUE ':'.
+                 15 WS15-PAGE-MN PIC 9(02).
+                 15 FILLER       PIC X(01) VALUE ':'.
+                 15 WS15-PAGE-SS PIC 9(02).
+              10 FILLER          PIC X(38) VALUE SPACES.
+              10 WS10-TEXT-REP   PIC X(12) VALUE "REPORT ID : ".
+              10 WS10-REPORT-ID  PIC 9(04) VALUE 1001.
+              10 FILLER          PIC X(11) VALUE SPACES.
+           05 WS05-PAGE2-L1.
+              10 FILLER          PIC X(60) VALUE SPACES.
+              10 WS10-TEXT-PAGE2 PIC X(07) VALUE "PAGE : ".
+              10 WS10-PAGE-NO2   PIC 9(02) VALUE 1.
+              10 FILLER          PIC X(11) VALUE ALL SPACES.
+           05 WS05-PAGE2-L2.
+              10 FILLER          PIC X(53) VALUE SPACES.
+              10 WS10-TEXT-REP2  PIC X(12) VALUE "REPORT ID : ".
+              10 WS10-REPORT-ID2 PIC 9(04) VALUE 1001.
+              10 FILLER          PIC X(11) VALUE SPACES.
+      ***** CONNECTING COMMUNICATION AREA/HOST VARIABLES TO COBOL*****
+           EXEC SQL
+                INCLUDE SQLCA
+           END-EXEC.
+           EXEC SQL
+                INCLUDE TABLE1
+           END-EXEC.
+           EXEC SQL
+                INCLUDE TABLE2
+           END-EXEC.
+           EXEC SQL
+      ********* DECLARATION OF CURSOR FOR THE SQL QUERY *********
+                DECLARE CUR CURSOR
+                FOR  SELECT APP_ID,
+                            NAME,
+                            STATE,
+                            PHONE,
+                            L.APROVRD_LN_AMT
+                     FROM APPLICANT_DB A, LOAN_DB L
+                     WHERE A.APP_ID = L.AP_ID AND
+                           A.CITY = :WS05-CHECK-CITY AND
+                           MONTH(L.LN_DATE) = 11
+           END-EXEC.
+       PROCEDURE DIVISION.
+       0000-MAIN-PARA.
+           PERFORM 1000-INIT-PARA
+           THRU    1000-INIT-PARA-EXIT
+           PERFORM 3000-PROC-PARA
+           THRU    3000-PROC-PARA-EXIT
+           PERFORM 9000-TERM-PARA
+           .
+       1000-INIT-PARA.
+           CONTINUE
+           .
+       1000-INIT-PARA-EXIT.
+           EXIT
+           .
+       3000-PROC-PARA.
+           PERFORM 3100-OPEN-PARA
+           THRU    3100-OPEN-PARA-EXIT
+           PERFORM 3050-HEAD-PARA
+           THRU    3050-HEAD-PARA-EXIT
+           PERFORM 3200-FETCH-PARA
+           THRU    3200-FETCH-PARA-EXIT UNTIL SQLCODE = +100
+           PERFORM 3300-END-REP-PARA
+           THRU    3300-END-REP-PARA-EXIT
+           PERFORM 3400-CLOSE-PARA
+           THRU    3400-CLOSE-PARA-EXIT
+           .
+       3000-PROC-PARA-EXIT.
+           EXIT
+           .
+      ************* OPENING THE OUTPUT FILE AND CURSOR **************
+       3100-OPEN-PARA.
+           OPEN OUTPUT TO001-PS
+           EVALUATE FALSE
+                WHEN C05-TO001-SUC
+                     DISPLAY "OUPUT FILE OPEN FAILURE : "
+                     WS05-TO001-FST
+                PERFORM 9000-TERM-PARA
+           END-EVALUATE
+           EXEC SQL
+                OPEN CUR
+           END-EXEC
+           EVALUATE FALSE
+                WHEN SQLCODE = 000
+                DISPLAY "CURSOR OPEN FAILED : " SQLCODE
+                CALL 'DSNTIAR' USING SQLCA,
+                                     WS05-ERR-MSG,
+                                     WS05-LRECL
+                DISPLAY WS05-ERR-MSG
+                CLOSE TO001-PS
+                PERFORM 9000-TERM-PARA
+           END-EVALUATE
+           .
+       3100-OPEN-PARA-EXIT.
+           EXIT
+           .
+      ************ FETCHING RECORDS TO HANDLE IN COBOL *************
+       3200-FETCH-PARA.
+           MOVE SPACES TO TO001-PS-REC
+           MOVE SPACES TO WS01-REPORT-REC
+           EXEC SQL
+                FETCH CUR
+                INTO  :HV-APP-ID
+                     ,:HV-NAME
+                     ,:HV-STATE
+                     ,:HV-PHONE
+                     ,:HV-APROVRD-LN-AMT
+           END-EXEC
+           EVALUATE TRUE
+                WHEN SQLCODE = 000
+                PERFORM 3220-END-WRITE-PARA
+                THRU    3220-END-WRITE-PARA
+                PERFORM 3210-TOP-WRITE-PARA
+                THRU    3210-TOP-WRITE-PARA-EXIT
+                PERFORM 3230-REC-WRITE-PARA
+                THRU    3230-REC-WRITE-PARA-EXIT
+           WHEN SQLCODE = 100
+                DISPLAY "ALL RECORDS DONE"
+           WHEN OTHER
+                DISPLAY "CURSOR FETCH FAILED : " SQLCODE
+                CALL 'DSNTIAR' USING SQLCA,
+                                     WS05-ERR-MSG,
+                                     WS05-LRECL
+                DISPLAY WS05-ERR-MSG
+           END-EVALUATE
+           .
+       3200-FETCH-PARA-EXIT.
+           EXIT
+           .
+      ******** HEADER FOR PAGES OTHER THAN 1ST PAGE *************
+       3210-TOP-WRITE-PARA.
+           EVALUATE TRUE
+           WHEN WS05-LINES = 0 AND WS10-PAGE-NO > 1
+           MOVE WS05-PAGE2-L1 TO TO001-PS-REC
+           WRITE TO001-PS-REC
+                IF C05-TO001-SUC
+                   ADD  1 TO WS05-LINES
+                ELSE
+                   DISPLAY "PAGE NO NOT WRITTEN SUCCESSFULLY"
+                END-IF
+           MOVE WS05-PAGE2-L2 TO TO001-PS-REC
+           WRITE TO001-PS-REC
+                IF C05-TO001-SUC
+                   ADD  1 TO WS05-LINES
+                ELSE
+                   DISPLAY "REPORT ID NOT WRITTEN SUCCESSFULLY"
+                END-IF
+           MOVE WS05-HYPHEN TO TO001-PS-REC
+           WRITE TO001-PS-REC
+                IF C05-TO001-SUC
+                   ADD 1 TO WS05-LINES
+                ELSE
+                   DISPLAY "---- NOT WRITTEN SUCCESSFULLY"
+                END-IF
+           MOVE WS01-REPORT-HEAD TO TO001-PS-REC
+           WRITE TO001-PS-REC
+                IF C05-TO001-SUC
+                   ADD 1 TO WS05-LINES
+                ELSE
+                   DISPLAY "HEAD NOT WRITTEN SUCCESSFULLY"
+                END-IF
+           MOVE WS05-HYPHEN TO TO001-PS-REC
+           WRITE TO001-PS-REC
+                IF C05-TO001-SUC
+                   ADD 1 TO WS05-LINES
+                ELSE
+                   DISPLAY "---- NOT WRITTEN SUCCESSFULLY"
+                END-IF
+           END-EVALUATE
+           .
+       3210-TOP-WRITE-PARA-EXIT.
+           EXIT
+           .
+      *************** END OF PAGE TRAILER ******************
+       3220-END-WRITE-PARA.
+           EVALUATE TRUE
+           WHEN WS05-LINES = 8
+           MOVE WS01-LOAN-AMT TO TO001-PS-REC
+           WRITE TO001-PS-REC
+                IF C05-TO001-SUC
+               COMPUTE WS05-SUM-LOAN-AMT = 0
+                ELSE
+                DISPLAY "LOAN AMOUNT NOT WRITTEN"
+                END-IF
+           MOVE WS05-END-OF-PAGE TO TO001-PS-REC
+           WRITE TO001-PS-REC
+                IF C05-TO001-SUC
+                   MOVE 0 TO WS05-LINES
+                   ADD  1 TO WS10-PAGE-NO
+                   ADD  1 TO WS10-PAGE-NO2
+                ELSE
+                   DISPLAY "END OF PAGE NOT WRITTEN SUCCESSFULLY"
+                END-IF
+           END-EVALUATE
+           .
+       3220-END-WRITE-PARA-EXIT.
+           EXIT
+           .
+      *********** WRITING RECORD IN THE OUTPUT FILE ****************
+       3230-REC-WRITE-PARA.
+           MOVE HV-APP-ID TO WS05-APPL-ID
+           MOVE HV-STATE  TO WS05-STATE
+           MOVE HV-PHONE  TO WS05-PHONE-NO
+           MOVE HV-NAME-TEXT TO WS05-NAME
+           MOVE WS01-REPORT-REC TO TO001-PS-REC
+           WRITE TO001-PS-REC
+           EVALUATE TRUE
+           WHEN C05-TO001-SUC
+                ADD 1 TO WS05-LINES
+                COMPUTE WS05-SUM-LOAN-AMT = WS05-SUM-LOAN-AMT +
+                                            HV-APROVRD-LN-AMT
+           WHEN OTHER
+                DISPLAY "ERROR REORD NOT WRITTEN SUCCESSFULLY"
+           END-EVALUATE
+           .
+       3230-REC-WRITE-PARA-EXIT.
+           EXIT
+           .
+      ************* END OF REPORT TRAILER ***************
+       3300-END-REP-PARA.
+           EVALUATE TRUE
+             WHEN WS05-LINES = 0
+             MOVE WS05-END-OF-REPORT TO TO001-PS-REC
+             WRITE TO001-PS-REC
+               IF NOT C05-TO001-SUC
+                DISPLAY "END OF REPORT NOT WRITTEN SUCCESSFULLY"
+               END-IF
+             WHEN OTHER
+             MOVE WS01-LOAN-AMT TO TO001-PS-REC
+             WRITE TO001-PS-REC
+                IF C05-TO001-SUC
+                COMPUTE WS05-SUM-LOAN-AMT = 0
+                ELSE
+                DISPLAY "LOAN AMOUNT NOT WRITTEN"
+                END-IF
+             MOVE WS05-END-OF-REPORT TO TO001-PS-REC
+             WRITE TO001-PS-REC
+               IF NOT C05-TO001-SUC
+                DISPLAY "END OF REPORT NOT WRITTEN SUCCESSFULLY"
+               END-IF
+           END-EVALUATE
+           .
+       3300-END-REP-PARA-EXIT.
+           EXIT
+           .
+      *************** CLOSING OUTPUT FILE AND CURSOR ******************
+       3400-CLOSE-PARA.
+           EXEC SQL
+                CLOSE CUR
+           END-EXEC
+           EVALUATE FALSE
+                WHEN SQLCODE = 000
+                DISPLAY "CURSOR CLOSE FAILED : " SQLCODE
+                CALL 'DSNTIAR' USING SQLCA,
+                                     WS05-ERR-MSG,
+                                     WS05-LRECL
+                DISPLAY WS05-ERR-MSG
+           END-EVALUATE
+           CLOSE TO001-PS
+           EVALUATE FALSE
+           WHEN C05-TO001-SUC
+                DISPLAY "FILE NOT CLOSED PROPERLY : " WS05-TO001-FST
+           END-EVALUATE
+           .
+       3400-CLOSE-PARA-EXIT.
+           EXIT
+           .
+      ************* WRITING HEADER TO THE FIRST PAGE **************
+       3050-HEAD-PARA.
+           MOVE FUNCTION CURRENT-DATE TO WS01-CURRENT-DATE
+           MOVE WS10-YEAR             TO WS15-PAGE-YY
+           MOVE WS10-MONTH            TO WS15-PAGE-MM
+           MOVE WS10-DAY              TO WS15-PAGE-DD
+           MOVE WS10-HOUR             TO WS15-PAGE-HH
+           MOVE WS10-MINUTE           TO WS15-PAGE-MN
+           MOVE WS10-SECOND           TO WS15-PAGE-SS
+           MOVE WS05-TITLE TO TO001-PS-REC
+           WRITE TO001-PS-REC
+                IF C05-TO001-SUC
+                   ADD 1 TO WS05-LINES
+                ELSE
+                   DISPLAY "TITLE NOT WRITTEN SUCCESSFULLY"
+                END-IF
+           MOVE WS05-PAGE1-L1 TO TO001-PS-REC
+           WRITE TO001-PS-REC
+                IF C05-TO001-SUC
+                   ADD 1 TO WS05-LINES
+                ELSE
+                   DISPLAY "DATE NOT WRITTEN SUCCESSFULLY"
+                END-IF
+           MOVE WS05-PAGE1-L2 TO TO001-PS-REC
+           WRITE TO001-PS-REC
+                IF C05-TO001-SUC
+                   ADD 1 TO WS05-LINES
+                ELSE
+                   DISPLAY "TIME NOT WRITTEN SUCCESSFULLY"
+                END-IF
+           MOVE WS05-HYPHEN TO TO001-PS-REC
+           WRITE TO001-PS-REC
+                IF C05-TO001-SUC
+                   ADD 1 TO WS05-LINES
+                ELSE
+                   DISPLAY "---- NOT WRITTEN SUCCESSFULLY"
+                END-IF
+           MOVE WS01-REPORT-HEAD TO TO001-PS-REC
+           WRITE TO001-PS-REC
+                IF C05-TO001-SUC
+                   ADD 1 TO WS05-LINES
+                ELSE
+                   DISPLAY "HEAD NOT WRITTEN SUCCESSFULLY"
+                END-IF
+           MOVE WS05-HYPHEN TO TO001-PS-REC
+           WRITE TO001-PS-REC
+                IF C05-TO001-SUC
+                   ADD 1 TO WS05-LINES
+                ELSE
+                   DISPLAY "---- NOT WRITTEN SUCCESSFULLY"
+                END-IF
+           .
+       3050-HEAD-PARA-EXIT.
+           EXIT
+           .
+       9000-TERM-PARA.
+           STOP RUN
+           .
+

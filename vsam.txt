@@ -1,0 +1,19 @@
+//TECN148A JOB NOTIFY=&SYSUID                                           00020001
+//*CREATING MASTER LOAN AKSDS FILE************************************* 00021003
+//STEP1    EXEC PGM=IDCAMS                                              00030001
+//SYSPRINT DD SYSOUT=*                                                  00040001
+//SYSOUT DD SYSOUT=*                                                    00050001
+//SYSIN    DD *                                                         00060001
+  DELETE TECN148.MFRP.MASTER.LOAN.KSDS                                  00070004
+  IF LASTCC NE 0 THEN SET MAXCC=4                                       00080001
+  DEFINE CLUSTER(NAME(TECN148.MFRP.MASTER.LOAN.KSDS) -                  00090004
+  RECORDSIZE(80,80)-                                                    00100001
+  CISZ(512)-                                                            00110001
+  VOLUME(ZAPRD4)-                                                       00120001
+  TRACKS(2,2)-                                                          00130001
+  REUSE -                                                               00131001
+  INDEXED-                                                              00140001
+  FREESPACE(10,10)-                                                     00150001
+  KEYS(12,0))                                                           00160001
+/*                                                                      00170001
+

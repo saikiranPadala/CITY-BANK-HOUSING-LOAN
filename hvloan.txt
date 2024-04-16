@@ -1,0 +1,73 @@
+      ******************************************************************
+      * DCLGEN TABLE(LOAN_DB)                                          *
+      *        LIBRARY(TECN148.MP.PROGRAM.PDS(TABLE2))                 *
+      *        ACTION(REPLACE)                                         *
+      *        LANGUAGE(COBOL)                                         *
+      *        NAMES(HV-)                                              *
+      *        QUOTE                                                   *
+      *        LABEL(YES)                                              *
+      *        COLSUFFIX(YES)                                          *
+      * ... IS THE DCLGEN COMMAND THAT MADE THE FOLLOWING STATEMENTS   *
+      ******************************************************************
+           EXEC SQL DECLARE LOAN_DB TABLE
+           ( AP_ID                          CHAR(10),
+             LN_ID                          CHAR(2) NOT NULL,
+             LN_TYPE                        CHAR(10),
+             APROVRD_LN_AMT                 DECIMAL(8, 0),
+             LN_DATE                        DATE,
+             LN_TENURE                      CHAR(2),
+             FIR                            DECIMAL(3, 1),
+             LN_IND                         CHAR(5),
+             REPAY_DAY                      CHAR(2),
+             TOT_REPAY_AMT                  DECIMAL(9, 0),
+             MON_REPAY_AMT                  DECIMAL(9, 2),
+             NEXT_REPAY_DATE                DATE,
+             BALANEC_AMT                    DECIMAL(9, 2)
+           ) END-EXEC.
+      ******************************************************************
+      * COBOL DECLARATION FOR TABLE LOAN_DB                            *
+      ******************************************************************
+       01  DCLLOAN-DB.
+      *    *************************************************************
+      *                       AP_ID
+           10 HV-AP-ID             PIC X(10).
+      *    *************************************************************
+      *                       LN_ID
+           10 HV-LN-ID             PIC X(2).
+      *    *************************************************************
+      *                       LN_TYPE
+           10 HV-LN-TYPE           PIC X(10).
+      *    *************************************************************
+      *                       APROVRD_LN_AMT
+           10 HV-APROVRD-LN-AMT    PIC S9(8)V USAGE COMP-3.
+      *    *************************************************************
+      *                       LN_DATE
+           10 HV-LN-DATE           PIC X(10).
+      *    *************************************************************
+      *                       LN_TENURE
+           10 HV-LN-TENURE         PIC X(2).
+      *    *************************************************************
+      *                       FIR
+           10 HV-FIR               PIC S9(2)V9(1) USAGE COMP-3.
+      *    *************************************************************
+      *                       LN_IND
+           10 HV-LN-IND            PIC X(5).
+      *    *************************************************************
+      *                       REPAY_DAY
+           10 HV-REPAY-DAY         PIC X(2).
+      *    *************************************************************
+      *                       TOT_REPAY_AMT
+           10 HV-TOT-REPAY-AMT     PIC S9(9)V USAGE COMP-3.
+      *    *************************************************************
+      *                       MON_REPAY_AMT
+           10 HV-MON-REPAY-AMT     PIC S9(7)V9(2) USAGE COMP-3.
+      *    *************************************************************
+      *                       NEXT_REPAY_DATE
+           10 HV-NEXT-REPAY-DATE   PIC X(10).
+      *    *************************************************************
+      *                       BALANEC_AMT
+           10 HV-BALANEC-AMT       PIC S9(7)V9(2) USAGE COMP-3.
+      ******************************************************************
+      * THE NUMBER OF COLUMNS DESCRIBED BY THIS DECLARATION IS 13      *
+      ******************************************************************
+

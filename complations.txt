@@ -1,0 +1,80 @@
+ **************************** COMP **************************
+
+//TECN148A JOB NOTIFY=&SYSUID,CLASS=A,MSGLEVEL=(1,1),MSGCLASS=H        
+//JOBPROC  JCLLIB ORDER=IBMUSER.ALL1                                   
+//EXEC1    EXEC DB2JCL,                                                
+//         SRCLIB=TECN148.MFRP.HOUSING.LOAN.PDS,    ==> SOURCE LIB     
+//         DBRMLIB=TECN148.DB2.DBRM,                ==> DBRM LIBRARY   
+//         MEM=MFRPCOB2,                            ==> MEMBER NAME    
+//         INCLIB=TECN148.MFRP.HOUSING.LOAN.PDS,    ==> DCLGEN LIBRARY 
+//*        DCLLIB=TXSAD01.DCLGEN.LIB,               ==> DCLGEN LIBRARY 
+//         COPYLIB=TECN148.MFRP.HOUSING.LOAN.PDS,   ==> SOURCE LIBRARY 
+//         LOADLIB=TECN148.DB2.COBOL.LOADLIB        ==> LOAD LIBRARY   
+**************************** Bottom of Data ***************************
+
+ **************************** BIND **************************
+//TECN148A JOB ,,NOTIFY=&SYSUID,CLASS=A,MSGLEVEL=(1,1),MSGCLASS=H  
+//JOBLIB   DD  DISP=SHR,                                           
+//            DSN=DSN910.DB9G.SDSNEXIT                             
+//         DD DISP=SHR,                                            
+//            DSN=DSN910.SDSNLOAD                                  
+//BIND     EXEC PGM=IKJEFT01,DYNAMNBR=20                           
+//DBRMLIB  DD DISP=SHR,                                            
+//         DSN=TECN148.DB2.DBRM            --> DBRM LIBRARY        
+//SYSTSPRT DD SYSOUT=*                                             
+//SYSPRINT DD SYSOUT=*                                             
+//SYSUMUMP DD SYSOUT=*                                             
+//SYSOUT   DD SYSOUT=*                                             
+//REPORT   DD SYSOUT=*                                             
+//SYSTSIN  DD *                                                    
+  DSN SYSTEM(DB9G)                                                 
+  BIND PLAN(TECN148P) MEMBER(MFRPCOB2) ISOLATION(CS) ACTION(REP) - 
+   ENCODING(EBCDIC)                                                    
+ //*                    
+                                               
+ **************************** RUN FOR LOADING **************************
+
+ ***************************** Top of Data *************************
+ //TECN148A JOB NOTIFY=&SYSUID,CLASS=A,MSGCLASS=X,MSGLEVEL=(1,1),   
+ //             REGION=0M                                           
+ //STEP1    EXEC PGM=IEFBR14                                        
+ //TRNSDBRN EXEC PGM=IKJEFT01,DYNAMNBR=20                           
+ //STEPLIB  DD  DISP=SHR,DSN=DSN910.SDSNLOAD                        
+ //INPS     DD DSN=TECN148.MFRP.HOUSING.LOAN.PS,DISP=SHR            
+ //OUTERR   DD DSN=TECN148.MFRP.ERR.PS,DISP=SHR                     
+ //OUTKSDS  DD DSN=TECN148.MFRP.MASTER.LOAN.KSDS,DISP=SHR           
+ //SYSTSPRT DD SYSOUT=*                                             
+ //SYSPRINT DD SYSOUT=*                                             
+ //SYSUDUMP DD SYSOUT=*                                             
+ //SYSOUT   DD SYSOUT=*                                             
+ //SYSTSIN  DD *                                                    
+ DSN SYSTEM(DB9G)                                                   
+ RUN  PROGRAM(MFRPCOB1) PLAN(TECN148P) -                            
+       LIB('TECN148.DB2.COBOL.LOADLIB')                             
+       LIB('TECN148.DB2.COBOL.LOADLIB')                              
+ END                                                                 
+ /*                                                                  
+ //SYSIN DD DUMMY                                                    
+ //*           LIKE=TECN148.MP.APLICNT.LOAN.PS                       
+ **************************** Bottom of Data ************************
+
+ ***************************** run FOR REPORT ****************************
+ //TECN148A JOB NOTIFY=&SYSUID,CLASS=A,MSGCLASS=X,MSGLEVEL=(1,1),      
+ //             REGION=0M                                              
+ //STEP1    EXEC PGM=IEFBR14                                           
+ //TRNSDBRN EXEC PGM=IKJEFT01,DYNAMNBR=20                              
+ //STEPLIB  DD  DISP=SHR,DSN=DSN910.SDSNLOAD                           
+ //REPORTPS DD DSN=TECN148.MFRP.HOUSING.LOAN.REPORT.PS,DISP=SHR        
+ //SYSTSPRT DD SYSOUT=*                                                
+ //SYSPRINT DD SYSOUT=*                                                
+ //SYSUDUMP DD SYSOUT=*                                                
+ //SYSOUT   DD SYSOUT=*                                                
+ //SYSTSIN  DD *                                                       
+ DSN SYSTEM(DB9G)                                                      
+ RUN  PROGRAM(MFRPCOB2) PLAN(TECN148P) -                               
+       LIB('TECN148.DB2.COBOL.LOADLIB')                                
+ END                                                                   
+ /*  
+//SYSIN DD DUMMY                                                    
+                      
+ **************************** Bottom of Data ************************                                                                  
